@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>فيتنس سنتر - إدارة الحجوزات</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #121212;
+      color: #fff;
+      direction: rtl;
+      text-align: right;
+    }
+    header {
+      background-color: #0a3d62;
+      padding: 1rem;
+      text-align: center;
+      font-size: 1.5rem;
+    }
+    .container {
+      padding: 2rem;
+    }
+    input, button {
+      padding: 0.5rem;
+      margin: 0.5rem;
+      border-radius: 5px;
+      border: none;
+    }
+    input {
+      width: 200px;
+    }
+    button {
+      background-color: #2980b9;
+      color: #fff;
+      cursor: pointer;
+    }
+    table {
+      width: 100%;
+      margin-top: 2rem;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #3498db;
+      padding: 0.5rem;
+    }
+    .login-box {
+      max-width: 300px;
+      margin: 50px auto;
+      background-color: #1e272e;
+      padding: 2rem;
+      border-radius: 10px;
+      text-align: center;
+    }
+  </style>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getDatabase, ref, set, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDIgML6HvAq59DdigbJyvT_wjoTn7lNy9g",
+      authDomain: "dr-fitness-mens-booking5.firebaseapp.com",
+      projectId: "dr-fitness-mens-booking5",
+      storageBucket: "dr-fitness-mens-booking5.firebasestorage.app",
+      messagingSenderId: "614804063153",
+      appId: "1:614804063153:web:3babc838e2cf9042f4b390",
+      measurementId: "G-9J5CK13T5D"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    window.loginAdmin = function () {
+      const username = document.getElementById('adminUser').value.trim();
+      const password = document.getElementById('adminPass').value.trim();
+      if (username === 'admin' && password === 'admin123') {
+        document.getElementById('login').style.display = 'none';
+        document.getElementById('main').style.display = 'block';
+        fetchMembers();
+      } else {
+        alert('بيانات الدخول غير صحيحة');
+      }
+    }
+
+    window.addMember = function () {
+      const name = document.getElementById('name').value;
+      const phone = document.getElementById('phone').value;
+      const paid = document.getElementById('paid').value;
+      const date = document.getElementById('dateRange').value;
+      const id = document.getElementById('memberId').value;
+
+      if (!name || !phone || !paid || !date || !id) {
+        alert("يرجى ملء جميع الحقول");
+        return;
+      }
+
+      const newRef = push(ref(db, 'members'));
+      set(newRef, { name, phone, paid, date, id });
+    }
+
+    function fetchMembers() {
+      const membersRef = ref(db, 'members');
+      onValue(membersRef, snapshot => {
+        const data = snapshot.val();
+        const tableBody = document.getElementById('tableBody');
+        tableBody.innerHTML = '';
+        for (let key in data) {
+          const member = data[key];
+          const row = `<tr>
+            <td>${member.name}</td>
+            <td>${member.phone}</td>
+            <td>${member.paid}</td>
+            <td>${member.date}</td>
+            <td>${member.id}</td>
+            <td>
+              <button onclick="deleteMember('${key}')">حذف</button>
+              <button onclick="editMember('${key}', ${JSON.stringify(member).replace(/"/g, '&quot;')})">تعديل</button>
+            </td>
+          </tr>`;
+          tableBody.innerHTML += row;
+        }
+      });
+    }
+
+    window.deleteMember = function (key) {
+      if (confirm("هل أنت متأكد من الحذف؟")) {
+        remove(ref(db, 'members/' + key));
+      }
+    }
+
+    window.editMember = function (key, member) {
+      document.getElementById('name').value = member.name;
+      document.getElementById('phone').value = member.phone;
+      document.getElementById('paid').value = member.paid;
+      document.getElementById('dateRange').value = member.date;
+      document.getElementById('memberId').value = member.id;
+
+      window.addMember = function () {
+        update(ref(db, 'members/' + key), {
+          name: document.getElementById('name').value,
+          phone: document.getElementById('phone').value,
+          paid: document.getElementById('paid').value,
+          date: document.getElementById('dateRange').value,
+          id: document.getElementById('memberId').value
+        });
+      }
+    }
+
+    window.searchMembers = function () {
+      const query = document.getElementById('search').value.toLowerCase();
+      const rows = document.querySelectorAll("#tableBody tr");
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(query) ? "" : "none";
+      });
+    }
+  </script>
+</head>
+<body>
+  <header>فيتنس سنتر - إدارة الحجوزات</header>
+  <div class="container">
+    <div id="login" class="login-box">
+      <h3>تسجيل دخول الأدمن</h3>
+      <input type="text" id="adminUser" placeholder="اسم المستخدم"><br>
+      <input type="password" id="adminPass" placeholder="كلمة المرور"><br>
+      <button onclick="loginAdmin()">دخول</button>
+    </div>
+
+    <div id="main" style="display:none;">
+      <h3>إضافة / تعديل عضو</h3>
+      <input id="name" placeholder="الاسم">
+      <input id="phone" placeholder="رقم الهاتف">
+      <input id="paid" placeholder="الاشتراك المدفوع">
+      <input id="dateRange" placeholder="الفترة (من - إلى)">
+      <input id="memberId" placeholder="رقم العضوية">
+      <button onclick="addMember()">حفظ</button>
+
+      <br><br>
+      <input id="search" placeholder="بحث بالاسم أو رقم العضوية" oninput="searchMembers()">
+
+      <table>
+        <thead>
+          <tr>
+            <th>الاسم</th>
+            <th>رقم الهاتف</th>
+            <th>الاشتراك</th>
+            <th>الفترة</th>
+            <th>رقم العضوية</th>
+            <th>إجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
