@@ -53,6 +53,10 @@
       border-radius: 10px;
       text-align: center;
     }
+    .session-count {
+      color: #2ecc71;
+      font-weight: bold;
+    }
   </style>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
@@ -89,6 +93,7 @@
       const paid = document.getElementById('paid').value;
       const date = document.getElementById('dateRange').value;
       const id = document.getElementById('memberId').value;
+      const sessions = document.getElementById('sessions').value || 0;
 
       if (!name || !phone || !paid || !date || !id) {
         alert("يرجى ملء جميع الحقول");
@@ -96,7 +101,10 @@
       }
 
       const newRef = push(ref(db, 'members'));
-      set(newRef, { name, phone, paid, date, id });
+      set(newRef, { name, phone, paid, date, id, sessions });
+      
+      // مسح حقول الإدخال بعد الحفظ
+      resetForm();
     }
 
     function fetchMembers() {
@@ -113,6 +121,7 @@
             <td>${member.paid}</td>
             <td>${member.date}</td>
             <td>${member.id}</td>
+            <td class="session-count">${member.sessions || 0}</td>
             <td>
               <button onclick="deleteMember('${key}')">حذف</button>
               <button onclick="editMember('${key}', ${JSON.stringify(member).replace(/"/g, '&quot;')})">تعديل</button>
@@ -122,6 +131,20 @@
         }
       });
     }
+
+    function resetForm() {
+      document.getElementById('name').value = '';
+      document.getElementById('phone').value = '';
+      document.getElementById('paid').value = '';
+      document.getElementById('dateRange').value = '';
+      document.getElementById('memberId').value = '';
+      document.getElementById('sessions').value = '';
+      
+      // إعادة تعيين دالة الحفظ الأصلية
+      window.addMember = originalAddMember;
+    }
+
+    const originalAddMember = window.addMember;
 
     window.deleteMember = function (key) {
       if (confirm("هل أنت متأكد من الحذف؟")) {
@@ -135,6 +158,7 @@
       document.getElementById('paid').value = member.paid;
       document.getElementById('dateRange').value = member.date;
       document.getElementById('memberId').value = member.id;
+      document.getElementById('sessions').value = member.sessions || 0;
 
       window.addMember = function () {
         update(ref(db, 'members/' + key), {
@@ -142,8 +166,12 @@
           phone: document.getElementById('phone').value,
           paid: document.getElementById('paid').value,
           date: document.getElementById('dateRange').value,
-          id: document.getElementById('memberId').value
+          id: document.getElementById('memberId').value,
+          sessions: parseInt(document.getElementById('sessions').value) || 0
         });
+        
+        // العودة للواجهة الرئيسية بعد التعديل
+        resetForm();
       }
     }
 
@@ -174,6 +202,7 @@
       <input id="paid" placeholder="الاشتراك المدفوع">
       <input id="dateRange" placeholder="الفترة (من - إلى)">
       <input id="memberId" placeholder="رقم العضوية">
+      <input id="sessions" type="number" placeholder="عدد الجلسات" min="0">
       <button onclick="addMember()">حفظ</button>
 
       <br><br>
@@ -187,6 +216,7 @@
             <th>الاشتراك</th>
             <th>الفترة</th>
             <th>رقم العضوية</th>
+            <th>عدد الجلسات</th>
             <th>إجراءات</th>
           </tr>
         </thead>
